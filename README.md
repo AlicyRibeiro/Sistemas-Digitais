@@ -8,21 +8,11 @@ O foco dos projetos varia desde a implementação de componentes combinacionais 
 
 O repositório está organizado em pastas, onde cada uma contém um projeto ou atividade específica, com sua própria documentação.
 
-/
-├── 📁 Testbench_Datapath/
-│   ├── 📄 tb_datapath.vhd
-│   ├── 📄 item_a.png, item_a.txt, ...
-│   └── 📄 README.md (documentação detalhada deste teste)
-|
-├── 📁 Componente_SomadorMaiores/
-│   ├── 📄 somadois.vhd
-│   └── 📄 README.md (documentação detalhada deste componente)
-|
-├── 📁 Componente_SomaVetor/
-│   ├── 📄 somavetor.vhd
-│   └── 📄 README.md (documentação detalhada deste componente)
-|
-└── 📄 README.md (Este arquivo, o índice geral do repositório)
+* **`Testbench_Datapath/`**: Esta pasta é dedicada à verificação funcional do datapath de um processador. Ela contém o código VHDL do testbench (`tb_datapath.vhd`), arquivos de resultados (como imagens `.png` e textos `.txt` para cada item de teste), e um `README.md` com a documentação específica dos cenários de teste.
+
+* **`Componente_SomadorMaiores/`**: Esta pasta abriga o componente VHDL `somadois.vhd`, um circuito que soma os dois maiores de três números. Inclui também um `README.md` que detalha a funcionalidade e o uso deste componente.
+
+* **`Componente_SomaVetor/`**: Esta pasta contém o componente VHDL `somavetor.vhd`, projetado para somar um vetor de oito números. Possui um `README.md` com a documentação específica deste somador em árvore.
 
 ## Descrição dos Projetos
 
