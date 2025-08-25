@@ -1,0 +1,2 @@
+Soma dos valores de um vetor (VHDL)
+Elabore um circuito em VHDL que calcule a soma dos dados de um vetor de 8 posições, com dados de 4 bits
