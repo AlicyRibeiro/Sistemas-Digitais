@@ -1,0 +1,327 @@
+O que o testbench faz:
+Inicializa 3 registradores com valores (R0=100, R1=200, R2=300).
+
+Copia esses valores para RAM[0], RAM[1], RAM[2].
+
+Lê da RAM[0..2] para R4, R5, R6.
+
+Escreve R4, R5, R6 em RAM[10], RAM[11], RAM[12] usando R7 como registrador de endereço.
+
+
+----------------------------------------------------------------------------------------------------------------------
+
+TB_DATAPATH
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity tb_datapath is
+end tb_datapath;
+
+architecture Behavioral of tb_datapath is
+
+    constant CLK_PERIOD : time := 10 ns;
+
+    signal s_clk        : std_logic := '0';
+    signal s_reset      : std_logic := '1';
+
+    signal s_rn_sel     : std_logic_vector(2 downto 0);
+    signal s_rm_sel     : std_logic_vector(2 downto 0);
+    signal s_rd_sel     : std_logic_vector(2 downto 0);
+    signal s_rd_wr      : std_logic;
+    
+    signal s_op_ula     : std_logic_vector(3 downto 0);
+    signal s_rd_immd    : std_logic_vector(15 downto 0);
+    signal s_sel_rd_mux : std_logic_vector(1 downto 0);
+    signal s_mux_ram    : std_logic;
+    signal s_we         : std_logic_vector(0 downto 0);
+
+begin
+
+    DUT: entity work.cpu_wrapper
+        port map (
+            clk           => s_clk,
+            rst           => s_reset,
+            op_ula_0      => s_op_ula,
+            Rn_sel_0      => s_rn_sel,
+            Rd_sel_0      => s_rd_sel,
+            Rm_sel_0      => s_rm_sel,
+            Rd_wr_0       => s_rd_wr,
+            Rd_immd_0     => s_rd_immd,
+            sel_Rd_mux_0  => s_sel_rd_mux,
+            sel_0         => s_mux_ram,
+            wea_0         => s_we
+        );
+
+    s_clk <= not s_clk after CLK_PERIOD / 2;
+
+    stim_proc: process
+    begin
+        -- Reset
+        s_reset <= '1';
+        wait for 2*CLK_PERIOD;
+        s_reset <= '0';
+
+        -- Inicializa RAM[0..2] com valores 100, 200, 300
+        s_mux_ram <= '0'; 
+        s_sel_rd_mux <= "10"; 
+        s_rd_wr <= '1';
+
+        s_rd_sel <= "000"; 
+        s_rd_immd <= x"0064"; 
+        
+            wait for CLK_PERIOD; 
+         
+        s_rd_wr <= '0'; -- R0 = 100
+        s_rd_sel <= "001"; 
+        s_rd_immd <= x"00C8"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R1 = 200
+        s_rd_sel <= "010"; 
+        s_rd_immd <= x"012C"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R2 = 300
+
+        -- Store R0 em RAM[0]
+        s_rm_sel <= "011"; 
+        s_rd_sel <= "011"; 
+        s_rd_immd <= x"0000"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R3 = 0 (endereço)
+        s_rn_sel <= "000"; 
+        s_rm_sel <= "011"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+            
+       s_we <= "0";
+
+        -- Store R1 em RAM[1]
+        s_rd_sel <= "011"; 
+        s_rd_immd <= x"0001"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R3 = 1
+        s_rn_sel <= "001"; 
+        s_rm_sel <= "011"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_we <= "0";
+
+        -- Store R2 em RAM[2]
+        s_rd_sel <= "011"; 
+        s_rd_immd <= x"0002"; 
+        s_rd_wr <= '1'; 
+        
+          wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R3 = 2
+        s_rn_sel <= "010"; 
+        s_rm_sel <= "011"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_we <= "0";
+
+        ---------------------------------------------------
+        -- Leitura RAM[0..2] → registradores R4, R5, R6
+        ---------------------------------------------------
+        s_sel_rd_mux <= "01"; -- RAM output
+
+        s_rm_sel <= "011"; 
+        s_rd_sel <= "100"; 
+        s_rd_immd <= x"0000"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R4 = RAM[0]
+        s_rd_sel <= "101"; 
+        s_rd_immd <= x"0001"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R5 = RAM[1]
+        s_rd_sel <= "110"; 
+        s_rd_immd <= x"0002"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- R6 = RAM[2]
+
+        ---------------------------------------------------
+        -- Copiar R4, R5, R6 → RAM[10, 11, 12]
+        ---------------------------------------------------
+        s_mux_ram <= '0';
+        s_rn_sel <= "100"; 
+        s_rd_sel <= "111"; 
+        s_rd_immd <= x"000A"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- endereço = 10
+        s_rm_sel <= "111"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_we <= "0";
+        s_rn_sel <= "101"; 
+        s_rd_sel <= "111"; 
+        s_rd_immd <= x"000B"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- endereço = 11
+        s_rm_sel <= "111"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_we <= "0";
+
+        s_rn_sel <= "110"; 
+        s_rd_sel <= "111"; 
+        s_rd_immd <= x"000C"; 
+        s_rd_wr <= '1'; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_rd_wr <= '0'; -- endereço = 12
+        s_rm_sel <= "111"; 
+        s_we <= "1"; 
+        
+            wait for CLK_PERIOD; 
+        
+        s_we <= "0";
+
+        wait;
+    end process;
+
+end Behavioral;
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+CPU_WRAPPER
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity cpu_wrapper is
+  port (
+    clk           : in  std_logic;
+    rst           : in  std_logic;
+    
+    -- Controle do datapath
+    op_ula_0      : in  std_logic_vector(3 downto 0);
+    Rn_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_sel_0      : in  std_logic_vector(2 downto 0);
+    Rm_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_wr_0       : in  std_logic;
+    Rd_immd_0     : in  std_logic_vector(15 downto 0);
+    sel_Rd_mux_0  : in  std_logic_vector(1 downto 0);
+    
+    -- Controle da RAM
+    sel_0         : in  std_logic;
+    wea_0         : in  std_logic_vector(0 downto 0)
+  );
+end cpu_wrapper;
+
+architecture STRUCTURE of cpu_wrapper is
+
+  signal s_rm, s_rn, s_rd_ram, s_dina_mux : std_logic_vector(15 downto 0);
+
+  component datapath
+    generic (N : integer := 16);
+    port (
+      op_ula      : in  std_logic_vector(3 downto 0);
+      rn_sel      : in  std_logic_vector(2 downto 0);
+      rd_sel      : in  std_logic_vector(2 downto 0);
+      rm_sel      : in  std_logic_vector(2 downto 0);
+      rd_wr       : in  std_logic;
+      rd_ram      : in  std_logic_vector(15 downto 0);
+      rd_immd     : in  std_logic_vector(15 downto 0);
+      sel_rd_mux  : in  std_logic_vector(1 downto 0);
+      rm          : out std_logic_vector(15 downto 0);
+      rn          : out std_logic_vector(15 downto 0);
+      clk         : in  std_logic;
+      rst         : in  std_logic
+    );
+  end component;
+
+  component mux2x1_v1_0
+    port (
+      I0   : in  std_logic_vector(15 downto 0);
+      I1   : in  std_logic_vector(15 downto 0);
+      sel  : in  std_logic;
+      O0   : out std_logic_vector(15 downto 0)
+    );
+  end component;
+
+  component blk_mem_gen_0
+    port (
+      addra : in  std_logic_vector(15 downto 0);
+      clka  : in  std_logic;
+      dina  : in  std_logic_vector(15 downto 0);
+      douta : out std_logic_vector(15 downto 0);
+      wea   : in  std_logic_vector(0 downto 0)
+    );
+  end component;
+
+begin
+
+  datapath_inst : datapath
+    generic map (N => 16)
+    port map (
+      op_ula     => op_ula_0,
+      rn_sel     => Rn_sel_0,
+      rd_sel     => Rd_sel_0,
+      rm_sel     => Rm_sel_0,
+      rd_wr      => Rd_wr_0,
+      rd_ram     => s_rd_ram,
+      rd_immd    => Rd_immd_0,
+      sel_rd_mux => sel_Rd_mux_0,
+      rm         => s_rm,
+      rn         => s_rn,
+      clk        => clk,
+      rst        => rst
+    );
+
+  mux_inst : mux2x1_v1_0
+    port map (
+      I0  => s_rn,
+      I1  => s_rm,
+      sel => sel_0,
+      O0  => s_dina_mux
+    );
+
+  ram_inst : blk_mem_gen_0
+    port map (
+      addra => s_rm,
+      clka  => clk,
+      dina  => s_dina_mux,
+      douta => s_rd_ram,
+      wea   => wea_0
+    );
+
+end STRUCTURE;

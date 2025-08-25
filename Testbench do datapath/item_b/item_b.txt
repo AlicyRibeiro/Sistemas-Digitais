@@ -1,0 +1,168 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity tb_datapath is
+end tb_datapath;
+
+architecture Behavioral of tb_datapath is
+
+  constant N : integer := 16;
+  constant CLK_PERIOD : time := 10 ns;
+
+  signal s_clk, s_reset, s_rd_wr : std_logic := '0';
+  signal s_rn_sel, s_rm_sel, s_rd_sel : std_logic_vector(2 downto 0);
+  signal s_op_ula : std_logic_vector(3 downto 0);
+  signal s_rd_immd : std_logic_vector(N-1 downto 0);
+  signal s_sel_rd_mux : std_logic_vector(1 downto 0);
+  signal s_rm_out, s_rn_out : std_logic_vector(N-1 downto 0);
+
+  -- Lista com todas as 16 operações da ULA (0000 a 1111)
+  type op_array is array (0 to 15) of std_logic_vector(3 downto 0);
+  constant op_list : op_array := (
+    "0000", "0001", "0010", "0011",
+    "0100", "0101", "0110", "0111",
+    "1000", "1001", "1010", "1011",
+    "1100", "1101", "1110", "1111"
+  );
+
+begin
+
+  DUT: entity work.cpu_wrapper
+    port map (
+      clk          => s_clk,
+      rst          => s_reset,
+      op_ula_0     => s_op_ula,
+      Rn_sel_0     => s_rn_sel,
+      Rd_sel_0     => s_rd_sel,
+      Rm_sel_0     => s_rm_sel,
+      Rd_wr_0      => s_rd_wr,
+      Rd_immd_0    => s_rd_immd,
+      sel_Rd_mux_0 => s_sel_rd_mux,
+      rm           => s_rm_out,
+      rn           => s_rn_out
+    );
+
+  clock_process: process
+  begin
+    while true loop
+      s_clk <= '0'; wait for CLK_PERIOD / 2;
+      s_clk <= '1'; wait for CLK_PERIOD / 2;
+    end loop;
+  end process;
+
+  stimulus: process
+  begin
+    -- Inicializa
+    s_reset <= '1'; wait for CLK_PERIOD * 2;
+    s_reset <= '0';
+
+    -- mov R0, #15
+    s_rd_sel <= "000";
+    s_rd_immd <= "0000000000011111"; -- 15
+    s_sel_rd_mux <= "10";
+    s_rd_wr <= '1'; 
+		wait for CLK_PERIOD;
+    s_rd_wr <= '0'; 
+		wait for CLK_PERIOD;
+
+    -- mov R1, #3
+    s_rd_sel <= "001";
+    s_rd_immd <= "0000000000000011"; -- 3
+    s_sel_rd_mux <= "10";
+    s_rd_wr <= '1'; 
+		wait for CLK_PERIOD;
+    s_rd_wr <= '0'; 
+		wait for CLK_PERIOD;
+
+    -- Testa todas as 16 operações da ULA
+    for i in 0 to 15 loop
+      s_op_ula <= op_list(i);
+      s_rm_sel <= "000"; -- R0 (15)
+      s_rn_sel <= "001"; -- R1 (3)
+      s_rd_sel <= "010"; -- R2
+      s_sel_rd_mux <= "11"; -- Saída da ULA
+      s_rd_wr <= '1'; 
+		wait for CLK_PERIOD;
+      s_rd_wr <= '0'; 
+		wait for CLK_PERIOD;
+    end loop;
+
+    wait for CLK_PERIOD * 5;
+    --assert false report "Fim do teste da ULA." severity failure;
+  wait; -- Espera indefinidamente após o teste
+
+  end process;
+
+end Behavioral;
+
+----------------------------------------------------------------------------------------------------------------------------
+
+CPU-WRAPPER
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity cpu_wrapper is
+  port (
+    -- Sinais de controle e dados
+    clk           : in  std_logic;
+    rst           : in  std_logic;
+
+    op_ula_0      : in  std_logic_vector(3 downto 0);
+    Rn_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_sel_0      : in  std_logic_vector(2 downto 0);
+    Rm_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_wr_0       : in  std_logic;
+    Rd_immd_0     : in  std_logic_vector(15 downto 0);
+    sel_Rd_mux_0  : in  std_logic_vector(1 downto 0);
+
+    -- Saídas do datapath para observação
+    rm            : out std_logic_vector(15 downto 0);
+    rn            : out std_logic_vector(15 downto 0)
+  );
+end cpu_wrapper;
+
+architecture STRUCTURE of cpu_wrapper is
+
+  -- rd_ram não está sendo usado no teste, mas é necessário para o datapath
+  signal s_rd_ram : std_logic_vector(15 downto 0) := (others => '0');
+
+  component datapath
+    generic (N : integer := 16);
+    port (
+      op_ula      : in  std_logic_vector(3 downto 0);
+      rn_sel      : in  std_logic_vector(2 downto 0);
+      rd_sel      : in  std_logic_vector(2 downto 0);
+      rm_sel      : in  std_logic_vector(2 downto 0);
+      rd_wr       : in  std_logic;
+      rd_ram      : in  std_logic_vector(15 downto 0);
+      rd_immd     : in  std_logic_vector(15 downto 0);
+      sel_rd_mux  : in  std_logic_vector(1 downto 0);
+      rm          : out std_logic_vector(15 downto 0);
+      rn          : out std_logic_vector(15 downto 0);
+      clk         : in  std_logic;
+      rst         : in  std_logic
+    );
+  end component;
+
+begin
+
+  datapath_inst : datapath
+    generic map (N => 16)
+    port map (
+      op_ula      => op_ula_0,
+      rn_sel      => Rn_sel_0,
+      rd_sel      => Rd_sel_0,
+      rm_sel      => Rm_sel_0,
+      rd_wr       => Rd_wr_0,
+      rd_ram      => s_rd_ram,
+      rd_immd     => Rd_immd_0,
+      sel_rd_mux  => sel_Rd_mux_0,
+      rm          => rm,
+      rn          => rn,
+      clk         => clk,
+      rst         => rst
+    );
+
+end STRUCTURE;

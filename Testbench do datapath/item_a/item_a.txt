@@ -1,0 +1,218 @@
+TB_DATAPATH
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity tb_datapath is
+end tb_datapath;
+
+architecture Behavioral of tb_datapath is
+
+    constant CLK_PERIOD : time := 10 ns;
+
+    signal s_clk        : std_logic := '0';
+    signal s_reset      : std_logic := '1';
+
+    signal s_rn_sel     : std_logic_vector(2 downto 0);
+    signal s_rm_sel     : std_logic_vector(2 downto 0);
+    signal s_rd_sel     : std_logic_vector(2 downto 0);
+    signal s_rd_wr      : std_logic;
+    signal s_op_ula     : std_logic_vector(3 downto 0);
+    signal s_rd_immd    : std_logic_vector(15 downto 0);
+    signal s_sel_rd_mux : std_logic_vector(1 downto 0);
+    signal s_mux_ram    : std_logic;
+    signal s_we         : std_logic_vector(0 downto 0);
+
+begin
+
+    DUT: entity work.cpu_wrapper
+        port map (
+            clk           => s_clk,
+            rst           => s_reset,
+            op_ula_0      => s_op_ula,
+            Rn_sel_0      => s_rn_sel,
+            Rd_sel_0      => s_rd_sel,
+            Rm_sel_0      => s_rm_sel,
+            Rd_wr_0       => s_rd_wr,
+            Rd_immd_0     => s_rd_immd,
+            sel_Rd_mux_0  => s_sel_rd_mux,
+            sel_0         => s_mux_ram,
+            wea_0         => s_we
+        );
+
+    s_clk <= not s_clk after CLK_PERIOD / 2;
+
+    stim_proc: process
+    begin
+        -- Reset
+        s_reset <= '1';
+        wait for 2 * CLK_PERIOD;
+        s_reset <= '0';
+        wait for CLK_PERIOD;
+
+        -- R0 ← #5
+        s_rd_sel <= "000";
+        s_rd_immd <= x"0005";
+        s_sel_rd_mux <= "10"; -- imediato
+        s_rd_wr <= '1'; 
+            wait for CLK_PERIOD;
+        s_rd_wr <= '0'; 
+            wait for CLK_PERIOD;
+
+        -- R1 ← #6
+        s_rd_sel <= "001";
+        s_rd_immd <= x"0006";
+        s_sel_rd_mux <= "10"; -- imediato
+        s_rd_wr <= '1'; 
+            wait for CLK_PERIOD;
+        s_rd_wr <= '0'; 
+            wait for CLK_PERIOD;
+
+        -- R2 ← R0 + R1 (R2 = 11)
+        s_rd_sel <= "010";
+        s_rm_sel <= "000"; -- R0
+        s_rn_sel <= "001"; -- R1
+        s_sel_rd_mux <= "11"; -- resultado da ULA
+        s_op_ula <= "0100"; -- soma
+        s_rd_wr <= '1'; 
+            wait for CLK_PERIOD;
+        s_rd_wr <= '0'; 
+            wait for CLK_PERIOD;
+
+        -- R3 ← #15 (endereço para RAM)
+        s_rd_sel <= "011";
+        s_rd_immd <= x"000F";
+        s_sel_rd_mux <= "10";
+        s_rd_wr <= '1'; 
+            wait for CLK_PERIOD;
+        s_rd_wr <= '0'; 
+            wait for CLK_PERIOD;
+
+        -- RAM[15] ← R2
+        s_rn_sel <= "010"; -- dado = R2
+        s_rm_sel <= "011"; -- endereço = R3
+        s_mux_ram <= '0';  -- mux envia Rn
+        s_we <= "1"; 
+            wait for CLK_PERIOD;
+        s_we <= "0"; 
+            wait;
+
+    end process;
+
+end Behavioral;
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+CPU_WRAPPER
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity cpu_wrapper is
+  port (
+    clk           : in  std_logic;
+    rst           : in  std_logic;
+
+    -- Controle do datapath
+    op_ula_0      : in  std_logic_vector(3 downto 0);
+    Rn_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_sel_0      : in  std_logic_vector(2 downto 0);
+    Rm_sel_0      : in  std_logic_vector(2 downto 0);
+    Rd_wr_0       : in  std_logic;
+    Rd_immd_0     : in  std_logic_vector(15 downto 0);
+    sel_Rd_mux_0  : in  std_logic_vector(1 downto 0);
+
+    -- Controle da RAM
+    sel_0         : in  std_logic;
+    wea_0         : in  std_logic_vector(0 to 0)
+  );
+end cpu_wrapper;
+
+architecture STRUCTURE of cpu_wrapper is
+
+  signal s_rm, s_rn, s_rd_ram, s_dina_mux : std_logic_vector(15 downto 0);
+
+  -- Componente datapath
+  component datapath
+    generic (N : integer := 16);
+    port (
+      op_ula      : in  std_logic_vector(3 downto 0);
+      rn_sel      : in  std_logic_vector(2 downto 0);
+      rd_sel      : in  std_logic_vector(2 downto 0);
+      rm_sel      : in  std_logic_vector(2 downto 0);
+      rd_wr       : in  std_logic;
+      rd_ram      : in  std_logic_vector(15 downto 0);
+      rd_immd     : in  std_logic_vector(15 downto 0);
+      sel_rd_mux  : in  std_logic_vector(1 downto 0);
+      rm          : out std_logic_vector(15 downto 0);
+      rn          : out std_logic_vector(15 downto 0);
+      clk         : in  std_logic;
+      rst         : in  std_logic
+    );
+  end component;
+
+  -- Mux para entrada da RAM
+  component mux2x1_v1_0
+    port (
+      I0  : in  std_logic_vector(15 downto 0); -- Rn
+      I1  : in  std_logic_vector(15 downto 0); -- Rm
+      sel : in  std_logic;
+      O0  : out std_logic_vector(15 downto 0)
+    );
+  end component;
+
+  -- Memória RAM
+  component blk_mem_gen_0
+    port (
+      addra : in  std_logic_vector(15 downto 0);
+      clka  : in  std_logic;
+      dina  : in  std_logic_vector(15 downto 0);
+      douta : out std_logic_vector(15 downto 0);
+      wea   : in  std_logic_vector(0 to 0)
+    );
+  end component;
+
+begin
+
+  -- Instância do datapath
+  datapath_inst : datapath
+    generic map (N => 16)
+    port map (
+      op_ula     => op_ula_0,
+      rn_sel     => Rn_sel_0,
+      rd_sel     => Rd_sel_0,
+      rm_sel     => Rm_sel_0,
+      rd_wr      => Rd_wr_0,
+      rd_ram     => s_rd_ram,
+      rd_immd    => Rd_immd_0,
+      sel_rd_mux => sel_Rd_mux_0,
+      rm         => s_rm,
+      rn         => s_rn,
+      clk        => clk,
+      rst        => rst
+    );
+
+  -- Mux 2x1: seleciona o dado a ser escrito na RAM
+  mux_inst : mux2x1_v1_0
+    port map (
+      I0  => s_rn,
+      I1  => s_rm,
+      sel => sel_0,
+      O0  => s_dina_mux
+    );
+
+  -- Instância da RAM
+  ram_inst : blk_mem_gen_0
+    port map (
+      addra => s_rm,         -- endereço da RAM vem de Rm
+      clka  => clk,
+      dina  => s_dina_mux,   -- dado para escrever na RAM
+      douta => s_rd_ram,     -- dado vindo da RAM
+      wea   => wea_0
+    );
+
+end STRUCTURE;
