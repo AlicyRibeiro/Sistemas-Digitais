@@ -15,7 +15,7 @@ A lógica de comparação trata corretamente os casos em que dois ou todos os tr
 ## Estrutura do Módulo (`somadois.vhd`)
 
 ### Genérico
-* N : integer := 8`: Controla a largura de bits dos números de entrada, permitindo que o componente seja facilmente reconfigurado para outras larguras (ex: 16, 32 bits). 
+* N : integer := 8: Controla a largura de bits dos números de entrada, permitindo que o componente seja facilmente reconfigurado para outras larguras (ex: 16, 32 bits). 
 
 ### Portas
 
