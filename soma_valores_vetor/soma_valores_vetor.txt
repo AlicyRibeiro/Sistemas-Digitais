@@ -1,0 +1,5 @@
+
+Soma dos valores de um vetor (simulador)
+Elabore um circuito que calcule a soma dos dados de um vetor de 8 posições, com dados de 4 bits.
+
+Use o simulador disponível em https://github.com/hneemann/Digital
