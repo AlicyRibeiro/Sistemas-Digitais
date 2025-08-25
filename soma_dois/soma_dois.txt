@@ -1,0 +1,2 @@
+Soma dos 2 maiores números (VHDL)
+Elabore um circuito em VDHDL que, dados 3 números, calcule a somados dois maiores. 
