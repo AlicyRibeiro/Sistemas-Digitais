@@ -1,0 +1,4 @@
+Soma dos 2 maiores números (simulador)
+Elabore um circuito que, dados 3 números, calcule a somados dois maiores. 
+
+Use o simulador disponível em https://github.com/hneemann/Digital
