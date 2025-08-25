@@ -37,8 +37,21 @@ Esta seção agrupa componentes VHDL menores desenvolvidos como atividades prát
     * **Arquivo:** `somavetor.vhd`
     * **Descrição:** Um circuito que soma 8 vetores de entrada de `N` bits. A implementação utiliza uma arquitetura em árvore de somadores para otimizar a lógica.
 
+### 3. Circuitos no Simulador "Digital"
+
+Esta seção contém circuitos lógicos desenvolvidos na ferramenta [Digital](https://github.com/hneemann/Digital).
+
+* **`Circuito_SomadorMaiores_Digital`**
+    * **Arquivo:** `soma_dois_maiores.dig`
+    * **Descrição:** Um circuito que recebe três entradas de 4 bits (A, B, C) e calcula a soma dos dois maiores valores. A lógica é implementada com comparadores e multiplexadores para selecionar os números corretos a serem somados.
+
+* **`Circuito_SomaVetor_Digital`**
+    * **Arquivos:** `soma_valores_vetor.dig`, `soma_valores_vetor.txt`
+    * **Descrição:** Um circuito sequencial que calcula a soma dos dados de um vetor de 8 posições, com dados de 4 bits. O vetor de dados é armazenado em uma EEPROM, e o circuito utiliza registradores e somadores para iterar pelo vetor e acumular o resultado.
+
 ## Ferramentas Comuns
 
+* **Circuitos Lógicos:** Digital Logic Simulator
 * **Software:** Xilinx Vivado
 * **Linguagem:** VHDL
 
